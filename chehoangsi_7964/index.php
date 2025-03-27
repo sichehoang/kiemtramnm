@@ -1,10 +1,23 @@
 <?php
+session_start();
 include 'app/config/database.php';
-include 'app/shares/header.php'; 
+include 'app/shares/header.php';
+
+// Kiểm tra nếu chưa đăng nhập
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Lấy thông tin user từ session
+$username = $_SESSION['username'];
+$role = $_SESSION['role']; // Lấy quyền từ session
+$isAdmin = ($role === 'admin'); // Xác định có phải admin không
+
 // Cấu hình phân trang
-$limit = 5; // Số nhân viên mỗi trang
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1; // Trang hiện tại
-$offset = ($page - 1) * $limit; // Vị trí bắt đầu lấy dữ liệu
+$limit = 5;
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+$offset = ($page - 1) * $limit;
 
 // Truy vấn dữ liệu có phân trang
 $sql = "SELECT NHANVIEN.*, PHONGBAN.Ten_Phong FROM NHANVIEN 
@@ -58,12 +71,23 @@ $totalPages = ceil($totalEmployees / $limit);
     </style>
 </head>
 <body>
+
 <div class="container mt-4">
-    <h2 class="text-center text-primary fw-bold">THÔNG TIN NHÂN VIÊN</h2>
+    <!-- Hiển thị tên user -->
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <a href="app/products/add.php" class="btn btn-success">➕ THÊM NHÂN VIÊN</a>
+        <h4>Xin chào, <strong><?= htmlspecialchars($username) ?></strong> 👋</h4>
+        <a href="login.php" class="btn btn-danger">Đăng xuất</a>
     </div>
-    
+
+    <h2 class="text-center text-primary fw-bold">THÔNG TIN NHÂN VIÊN</h2>
+
+    <!-- Chỉ Admin mới thấy nút thêm -->
+    <?php if ($isAdmin): ?>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="app/products/add.php" class="btn btn-success">➕ THÊM NHÂN VIÊN</a>
+        </div>
+    <?php endif; ?>
+
     <div class="table-responsive">
         <table class="table table-hover table-bordered text-center align-middle">
             <thead>
@@ -74,7 +98,9 @@ $totalPages = ceil($totalEmployees / $limit);
                     <th>Nơi Sinh</th>
                     <th>Phòng Ban</th>
                     <th>Lương</th>
-                    <th>Hành Động</th>
+                    <?php if ($isAdmin): ?>
+                        <th>Hành Động</th>
+                    <?php endif; ?>
                 </tr>
             </thead>
             <tbody>
@@ -92,10 +118,14 @@ $totalPages = ceil($totalEmployees / $limit);
                     <td><?= $row['Noi_Sinh'] ?></td>
                     <td><?= $row['Ten_Phong'] ?></td>
                     <td><?= number_format($row['Luong']) ?> VNĐ</td>
+                    
+                    <!-- Chỉ Admin mới thấy nút Sửa/Xóa -->
+                    <?php if ($isAdmin): ?>
                     <td>
                         <a href="app/products/edit.php?id=<?= $row['Ma_NV'] ?>" class="btn btn-primary btn-sm">✏️ Sửa</a>
                         <a href="app/products/delete.php?id=<?= $row['Ma_NV'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Bạn có chắc chắn muốn xóa?');">🗑️ Xóa</a>
                     </td>
+                    <?php endif; ?>
                 </tr>
                 <?php endwhile; ?>
             </tbody>
